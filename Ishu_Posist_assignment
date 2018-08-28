@@ -1,0 +1,305 @@
+#include<bits/stdc++.h>
+#include <string>
+using namespace std;
+
+long long topSum = 0;
+long long totNodes = 0;
+long long rSum = 0;
+
+class node
+{
+public:
+    time_t timestamp;
+    string data;
+    int owner_id;
+    float value;
+    string name;
+    int key;
+    long nodeNumber;
+    string nodeId;
+    node* parent;
+    vector<node*> child;
+    string root;
+    int isroot = 0;
+    node(int o_id,float v,string name)
+    {
+        timestamp = time(0);
+        owner_id=o_id;
+        value=v;
+        name=name;
+        key=rand() % 10 + 1;
+        data= encrypt();
+        nodeNumber = ++totNodes;
+        nodeId = to_string(nodeNumber);
+        parent = NULL;
+        root = "1";
+        if (totNodes == 1)
+        {
+            isroot = 1;
+            topSum = value;
+        }
+    }
+
+    void setParent(node* par)
+    {
+        if (nodeNumber != 1)
+            parent = par;
+    }
+
+    string encrypt()
+    {
+
+        return to_string(owner_id)+to_string(key)+to_string(value)+to_string(key)+name;
+    }
+
+    void decrypt(int key1)
+    {
+        if(key1==key){
+        int i;
+        cout<<"Owner id: ";
+        for(i=0; i<data.length(); i++)
+        {
+            if(data[i]!=key)
+                cout<<data[i];
+            else
+                break;
+        }
+        cout<<endl;
+        cout<<"Value: ";
+        for(i=i+1; i<data.length(); i++)
+        {
+            if(data[i]!=key)
+                cout<<data[i];
+            else
+                break;
+        }
+        cout<<endl;
+        cout<<"Owner Name: ";
+        for(i=i+1; i<data.length(); i++)
+        {
+            if(data[i]!=key)
+                cout<<data[i];
+            else
+                break;
+        }
+        cout<<endl;
+        }
+        else
+            cout<<"\nInvalid Key!\n";
+    }
+};
+
+node* createGenesis(int o_id,float v,string name)
+{
+    node* root = new node(o_id,v,name);
+    return root;
+}
+
+node* findNode(node* root, string nodeid)
+{
+    if (!root)
+        return NULL;
+    queue<node*> q;
+    q.push(root);
+    while (!q.empty())
+    {
+        node* temp = q.front();
+        q.pop();
+        if (temp->nodeId == nodeid)
+            return temp;
+        for (int i = 0; i < temp->child.size(); i++)
+        {
+            q.push(temp->child[i]);
+        }
+    }
+    return NULL;
+}
+
+bool replace(string& str, const string& from, const string& to)
+{
+    size_t start_pos = str.find(from);
+    if(start_pos == string::npos)
+        return false;
+    str.replace(start_pos, from.length(), to);
+    return true;
+}
+
+void editValue(node* root, float val)
+{
+    int a = root->value;
+    if (topSum - (rSum - a + val) >= 0)
+    {
+        string str=to_string(root->value);
+        int n = str.length();
+        char char_array[n+1];
+        strcpy(char_array, str.c_str());
+        string str2= to_string(val);
+        int n2 = str2.length();
+        char char_array2[n2+1];
+        strcpy(char_array2, str2.c_str());
+        replace(root->data, char_array, char_array2);
+        root->value = val;
+
+    }
+    else
+        cout << "\nNot possible to modify data.\n";
+}
+
+void addChildren(node* root, int n)
+{
+    int owner_id;
+    string name;
+    float value;
+    for (int i = 0; i < n; i++)
+    {
+        cout << "Enter value of child " << i + 1 << " : ";
+        cout << "Enter owner id: \n";
+        cin>> owner_id;
+        cout << "Enter value: \n";
+        cin>> value;
+        cout << "Enter name: \n";
+        cin>> name;
+        if (topSum - rSum < value)
+        {
+            cout << "Cannot create this child.\n";
+        }
+        else
+        {
+            node* child = new node(owner_id,value,name);
+            root->child.push_back(child);
+            rSum += value;
+        }
+    }
+}
+
+
+int longestchain(node* root)
+{
+    // Base case
+    if (!root)
+        return 0;
+
+    // Check for all children and find the maximum depth
+    int maxdepth = 0;
+    for (auto it = root->child.begin(); it != root->child.end(); it++)
+        maxdepth = max(maxdepth, longestchain(*it));
+
+    return maxdepth + 1;
+
+}
+
+void merge(node* a, node* b)
+{
+    int a_len = longestchain(a);
+    int b_len = longestchain(b);
+    if (a_len >= b_len)
+    {
+        node* par_b = b->parent;
+        for (int i = 0; i < b->child.size(); i++)
+        {
+            par_b->child.push_back(b->child[i]);
+        }
+        int a_data = stoi(a->data) + stoi(b->data);
+        a->data = to_string(a_data);
+        b->child.clear();
+        for (int i = 0; i < par_b->child.size(); i++)
+        {
+            if (par_b->child[i] == b)
+            {
+                par_b->child.erase(par_b->child.begin() + i);
+                break;
+            }
+        }
+        delete(b);
+    }
+}
+
+int main()
+{
+    int ch = 0;
+    node* genesis;
+    int owner_id;
+    string name;
+    float value;
+    while (true)
+    {
+        cout << "1. Create genesis node.\n";
+        cout << "2. Decrypt node data.\n";
+        cout << "3. Create children of a node.\n";
+        cout << "4. Edit value of a node.\n";
+        cout << "5. Find longest chain of a node.\n";
+        cout << "6. Merge 2 nodes.\n";
+        cout << "7. Exit.\n";
+        cin >> ch;
+        string nodeId;
+        node* temp;
+        float val;
+        string a, b;
+        node* temp1, *temp2;
+        switch(ch)
+        {
+        case 1:
+            if (totNodes == 0)
+            {
+                cout << "Enter owner id: \n";
+                cin>> owner_id;
+                cout << "Enter value: \n";
+                cin>> value;
+                cout << "Enter name: \n";
+                cin>> name;
+                genesis = createGenesis(owner_id,value,name);
+                cout<<"Genesis node created! Node ID is "<<genesis->nodeId<<endl<<endl;
+                cout<<"Encryption key is: "<<genesis->key<<endl;
+            }
+            break;
+        case 2:
+            int k;
+            cout << "Enter nodeId: ";
+            cin >> nodeId;
+            cout << "Enter key: ";
+            cin >>k;
+            temp = findNode(genesis, nodeId);
+            temp->decrypt(k);
+            break;
+        case 3:
+            int n;
+            cout << "Enter nodeId: ";
+            cin >> nodeId;
+            cout << "Enter number of children to add: ";
+            cin >> n;
+            temp = findNode(genesis, nodeId);
+            addChildren(temp, n);
+            break;
+        case 4:
+            cout << "Enter nodeId and new data : ";
+            cin >> nodeId;
+            if(stoi(nodeId)>totNodes)
+                break;
+            cin >> val;
+            temp = findNode(genesis, nodeId);
+            editValue(temp, val);
+            cout<<"\n Value Edited\n";
+            break;
+        case 5:
+            cout << "Enter nodeId : ";
+            cin >> nodeId;
+            temp = findNode(genesis, nodeId);
+            cout << longestchain(temp);
+            cout<<endl;
+            break;
+        case 6:
+            cout << "Enter nodeId of first and second node : ";
+            cin >> a >> b;
+            temp1 = findNode(genesis, a);
+            temp2 = findNode(genesis, b);
+            merge(temp1, temp2);
+            cout << "\nNodes Merged!!\n";
+            break;
+        case 7:
+            exit(0);
+        default:
+            cout << "Enter a valid number.\n";
+        }
+    }
+    return 0;
+}
